@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'signup_page.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -15,25 +16,25 @@ class WelcomePage extends StatelessWidget {
           children: [
             // Logo circle
             Container(
-              padding: const EdgeInsets.all(35),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.lock,
-                size: 80,
-                color: Color(0xFF41D5AB),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/icon.png',
+                  width: 400,
+                  height: 400,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
+
             const SizedBox(height: 40),
 
-            const Text(
-              "Welcome to SecureApp",
-              style: TextStyle(
-                fontSize: 24,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+            Text(
+              "L9itha ?",
+              style: GoogleFonts.julee(
+                fontSize: 96,
+                color: Color.fromRGBO(68, 68, 68, 1),
+                fontWeight: FontWeight.normal,
+                letterSpacing: .06,
               ),
             ),
 
