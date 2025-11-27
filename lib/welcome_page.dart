@@ -19,8 +19,8 @@ class WelcomePage extends StatelessWidget {
               child: ClipOval(
                 child: Image.asset(
                   'assets/images/icon.png',
-                  width: 400,
-                  height: 400,
+                  width: 370,
+                  height: 370,
                   fit: BoxFit.cover,
                 ),
               ),
@@ -31,7 +31,7 @@ class WelcomePage extends StatelessWidget {
             Text(
               "L9itha ?",
               style: GoogleFonts.julee(
-                fontSize: 96,
+                fontSize: 90,
                 color: Color.fromRGBO(68, 68, 68, 1),
                 fontWeight: FontWeight.normal,
                 letterSpacing: .06,
@@ -42,12 +42,12 @@ class WelcomePage extends StatelessWidget {
 
             // LOGIN BUTTON
             SizedBox(
-              width: 250,
+              width: 300,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF41D5AB),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                 ),
                 onPressed: () {
                   Navigator.push(
@@ -63,12 +63,12 @@ class WelcomePage extends StatelessWidget {
 
             // SIGN UP BUTTON
             SizedBox(
-              width: 250,
+              width: 300,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: const Color(0xFF444444),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                 ),
                 onPressed: () {
                   Navigator.push(
