@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login_page.dart';
+import 'dashboard_page.dart';
 import 'signup_page.dart';
 import 'forgot_password_page.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -60,7 +60,7 @@ class WelcomePage extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const LoginPage()),
+                        MaterialPageRoute(builder: (_) => const DashboardPage()),
                       );
                     },
                     child: Text(
