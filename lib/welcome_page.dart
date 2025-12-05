@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dashboard_page.dart';
 import 'signup_page.dart';
-import 'forgot_password_page.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'login_page.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -60,7 +59,7 @@ class WelcomePage extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const DashboardPage()),
+                        MaterialPageRoute(builder: (_) => const LoginPage()),
                       );
                     },
                     child: Text(
@@ -106,29 +105,7 @@ class WelcomePage extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
-
-                GestureDetector(
-                  onTap: () {
-                    // Later: Navigate to ForgotPasswordPage
-                    print("Forgot password clicked");
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ForgotPasswordPage(),
-                      ),
-                    );
-                  },
-                  child: Text(
-                    "Forgot password?",
-                    style: GoogleFonts.inter(
-                      color: Color(0xFF444444),
-                      fontWeight: FontWeight.normal,
-                      fontSize: 18,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
+                
               ],
             ),
           ),
