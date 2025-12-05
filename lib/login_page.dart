@@ -21,28 +21,48 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF00C0E8),
 
+      // ======== BACK BUTTON ========
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+
       body: Center(
         child: Container(
-          width: 320, // <<------ FIXED WIDTH FOR MOBILE APP
+          width: 320, // fixed width
           padding: const EdgeInsets.symmetric(horizontal: 20),
 
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
 
-              // TITLE
-              const Text(
-                "Welcome Back!",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
+              // ======== TITLE + LOGO ========
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Welcome Back!",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                
+                ],
               ),
 
               const SizedBox(height: 40),
 
-              // EMAIL FIELD
+              // ======== EMAIL FIELD ========
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -64,7 +84,7 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 20),
 
-              // PASSWORD FIELD
+              // ======== PASSWORD FIELD ========
               TextField(
                 controller: passwordController,
                 obscureText: _obscurePassword,
@@ -98,7 +118,7 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 40),
 
-              // FORGOT PASSWORD BUTTON
+              // ======== FORGOT PASSWORD ========
               GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -120,36 +140,34 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 30),
 
-              // LOGIN BUTTON
+              // ======== LOGIN BUTTON ========
               SizedBox(
-                  width: 300,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF41D5AB),
-                      foregroundColor: Colors.white,
-                      side: BorderSide(
-                        // <-- THIS ADDS THE STROKE
-                        color: Color(0xFF444444), // stroke color
-                        width: 2, // thickness
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 20),
+                width: 300,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF41D5AB),
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(
+                      color: Color(0xFF444444),
+                      width: 2,
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const DashboardPage()),
-                      );
-                    },
-                    child: Text(
-                      "Login",
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 19,
-                        // keeps your color
-                      ),
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const DashboardPage()),
+                    );
+                  },
+                  child: Text(
+                    "Login",
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 19,
                     ),
                   ),
                 ),
+              ),
 
             ],
           ),
