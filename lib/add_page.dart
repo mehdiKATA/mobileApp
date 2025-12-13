@@ -50,7 +50,7 @@ class AddPage extends StatelessWidget {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const LostPage()),
+                      MaterialPageRoute(builder: (_) => const LostItemPage()),
                     );
                   },
                   child: Container(
