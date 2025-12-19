@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'welcome_page.dart';
+import 'notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // STEP 3: initialize notifications (Android + iOS)
+  await NotificationService.init();
+
   runApp(const MyApp());
 }
 
@@ -13,9 +19,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
-      // Prevent Flutter Web from trying to download Roboto fonts
+      // Keep system fonts (safe)
       theme: ThemeData(
-        fontFamily: null, // Use system fonts to avoid Web font errors
+        fontFamily: null,
       ),
 
       home: const WelcomePage(),

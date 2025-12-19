@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
+import 'dashboard_page.dart';
+import 'notification_service.dart'; // ✅ ADD THIS
+
 class LostItemPage extends StatefulWidget {
   const LostItemPage({super.key});
 
@@ -17,8 +20,8 @@ class _LostItemPageState extends State<LostItemPage> {
   final TextEditingController descriptionController = TextEditingController();
 
   File? selectedImage;
+  bool isLoading = false;
 
-  // Tunisian places
   final List<String> places = [
     "Tunis",
     "Ariana",
@@ -42,23 +45,20 @@ class _LostItemPageState extends State<LostItemPage> {
   String? selectedPlace;
 
   // Pick image
-  Future pickImage() async {
+  Future<void> pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
       setState(() => selectedImage = File(picked.path));
     }
   }
 
-  // Pick date (disable typing)
-  Future pickDate() async {
+  // Pick date
+  Future<void> pickDate() async {
     DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      helpText: "Ikhtar el date",
-      cancelText: "Annuler",
-      confirmText: "OK",
     );
 
     if (picked != null) {
@@ -68,196 +68,191 @@ class _LostItemPageState extends State<LostItemPage> {
     }
   }
 
-  void submit() {
+  Future<void> submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Description mandatory ONLY if no photo
     if (selectedImage == null && descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("La description obligatoire si ma fama ch photo"),
+          content: Text(
+            "La description est obligatoire ken ma3andekch taswira.",
+          ),
         ),
       );
       return;
     }
 
-    ScaffoldMessenger.of(
+    setState(() => isLoading = true);
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    // ✅ SHOW SYSTEM NOTIFICATION (ANDROID + IOS)
+    await NotificationService.show(
+      notificationTitle: "✔ Informations reçues",
+      notificationBody: "Nous avons bien reçu vos informations",
+    );
+
+    setState(() => isLoading = false);
+
+    // ✅ NAVIGATE TO DASHBOARD
+    Navigator.pushReplacement(
       context,
-    ).showSnackBar(const SnackBar(content: Text("Thabtna fi adhika, merci !")));
+      MaterialPageRoute(builder: (_) => const DashboardPage()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF00C0E8),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: const Color(0xFF00C0E8),
 
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF00C0E8),
-        elevation: 0,
-        title: const Text(
-          "Dhayya3t 7aja",
-          style: TextStyle(color: Colors.white, fontSize: 22),
-        ),
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
-        ),
-      ),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF00C0E8),
+            elevation: 0,
+            title: const Text(
+              "Dhayya3t 7aja",
+              style: TextStyle(color: Colors.white, fontSize: 22),
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
 
-      body: Center(
-        child: Container(
-          width: 330,
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          body: Center(
+            child: Container(
+              width: 330,
+              padding: const EdgeInsets.all(16),
 
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              children: [
-                const SizedBox(height: 20),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  children: [
+                    const SizedBox(height: 20),
 
-                // DATE FIELD (now picker)
-                GestureDetector(
-                  onTap: pickDate,
-                  child: AbsorbPointer(
-                    child: TextFormField(
-                      controller: dateController,
-                      decoration: _dec(
-                        "Date (obligatoire)",
-                        Icons.calendar_today,
+                    // DATE
+                    GestureDetector(
+                      onTap: pickDate,
+                      child: AbsorbPointer(
+                        child: TextFormField(
+                          controller: dateController,
+                          decoration: _dec("Date", Icons.calendar_today),
+                          validator: (v) =>
+                              v == null || v.isEmpty ? "Wakteh dhaya3t?" : null,
+                        ),
                       ),
-                      validator: (value) => value == null || value.isEmpty
-                          ? "Wakteh dhayya3tha?"
-                          : null,
                     ),
-                  ),
-                ),
 
-                const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                // PLACE FIELD FIXED (NO OVERFLOW)
-                Container(
-                  width: double.infinity, // makes sure it never overflows
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: DropdownButtonFormField<String>(
-                    value: selectedPlace,
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      prefixIcon: const Icon(Icons.place),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    isExpanded:
-                        true, // 🔥 IMPORTANT: fixes overflow automatically
-                    hint: const Text("Win dhayya3tha (obligatoire)?"),
-                    items: places
-                        .map(
-                          (place) => DropdownMenuItem(
-                            value: place,
-                            child: Text(place, overflow: TextOverflow.ellipsis),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) => setState(() => selectedPlace = value),
-                    validator: (value) =>
-                        value == null ? "Win dhayya3tha" : null,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                TextFormField(
-                  controller: descriptionController,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText: "Description",
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
-                    prefixIcon: Padding(
-                      padding: const EdgeInsets.only(top: 8.0, left: 8.0),
-                      child: Icon(Icons.description),
-                    ),
-                    prefixIconConstraints: const BoxConstraints(
-                      minWidth: 40,
-                      minHeight: 40,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // PHOTO PICKER
-                GestureDetector(
-                  onTap: pickImage,
-                  child: Container(
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black26),
-                    ),
-                    child: selectedImage == null
-                        ? Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(
-                                Icons.add_a_photo,
-                                size: 40,
-                                color: Colors.black54,
-                              ),
-                              SizedBox(height: 10),
-                              Text("Ajout photo (ikhtiyari)"),
-                            ],
+                    // PLACE
+                    DropdownButtonFormField<String>(
+                      value: selectedPlace,
+                      isExpanded: true,
+                      decoration: _dec("Win dhaya3t?", Icons.place),
+                      items: places
+                          .map(
+                            (p) => DropdownMenuItem(value: p, child: Text(p)),
                           )
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(
-                              selectedImage!,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                            ),
+                          .toList(),
+                      onChanged: (v) => setState(() => selectedPlace = v),
+                      validator: (v) => v == null ? "Win dhaya3t?" : null,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // DESCRIPTION
+                    TextFormField(
+                      controller: descriptionController,
+                      maxLines: 4,
+                      decoration: _dec("Description", Icons.description),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // IMAGE
+                    GestureDetector(
+                      onTap: pickImage,
+                      child: Container(
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.black26),
+                        ),
+                        child: selectedImage == null
+                            ? const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.add_a_photo,
+                                    size: 40,
+                                    color: Colors.black54,
+                                  ),
+                                  SizedBox(height: 10),
+                                  Text("Ajout photo (ikhtiyari)"),
+                                ],
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.file(
+                                  selectedImage!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                ),
+                              ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // SUBMIT
+                    SizedBox(
+                      height: 55,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF41D5AB),
+                          side: const BorderSide(
+                            color: Color(0xFF444444),
+                            width: 2,
                           ),
-                  ),
-                ),
-
-                const SizedBox(height: 35),
-
-                // SUBMIT BUTTON
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF41D5AB),
-                      side: const BorderSide(
-                        color: Color(0xFF444444),
-                        width: 2,
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                        ),
+                        onPressed: isLoading ? null : submit,
+                        child: Text(
+                          "Submit",
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                    onPressed: submit,
-                    child: Text(
-                      "Sajjil el Ma3loumet",
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
-
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+
+        // LOADING OVERLAY
+        if (isLoading)
+          Container(
+            color: Colors.black.withOpacity(0.6),
+            child: const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 6,
+                color: Color(0xFF41D5AB),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
