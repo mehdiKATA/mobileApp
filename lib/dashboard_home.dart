@@ -3,15 +3,22 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:ui';
 import 'settings_page.dart';
+import 'welcome_page.dart';
 
 class DashboardHome extends StatefulWidget {
-  final String fullName;
-  final String email;
+  final String? fullName;
+  final String? email;
+  final int? userId;
+  final int creditScore;
+  final bool isLoggedIn;
 
   const DashboardHome({
     super.key,
-    this.fullName = "Guest User",
-    this.email = "guest@example.com",
+    this.fullName,
+    this.email,
+    this.userId,
+    this.creditScore = 0,
+    this.isLoggedIn = false,
   });
 
   @override
@@ -58,11 +65,8 @@ class _DashboardHomeState extends State<DashboardHome>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header section
                 _buildHeader(),
                 const SizedBox(height: 30),
-
-                // Menu items
                 _buildMenuCard(
                   icon: Icons.history_rounded,
                   title: "History",
@@ -83,12 +87,8 @@ class _DashboardHomeState extends State<DashboardHome>
                   ],
                 ),
                 const SizedBox(height: 25),
-
-                // Credit score section
                 _buildCreditScore(),
                 const SizedBox(height: 25),
-
-                // WhatsApp support card
                 _buildWhatsAppCard(),
               ],
             ),
@@ -130,7 +130,7 @@ class _DashboardHomeState extends State<DashboardHome>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Welcome back! 👋",
+                widget.isLoggedIn ? "Welcome back! 👋" : "Hello! 👋",
                 style: GoogleFonts.poppins(
                   color: Colors.white.withOpacity(0.8),
                   fontSize: 13,
@@ -139,7 +139,9 @@ class _DashboardHomeState extends State<DashboardHome>
               ),
               const SizedBox(height: 2),
               Text(
-                widget.fullName,
+                widget.isLoggedIn
+                    ? (widget.fullName ?? "Guest User")
+                    : "Guest User",
                 style: GoogleFonts.poppins(
                   color: Colors.white,
                   fontSize: 20,
@@ -155,17 +157,27 @@ class _DashboardHomeState extends State<DashboardHome>
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
-            icon: const Icon(Icons.settings_rounded, color: Colors.white),
+            icon: Icon(
+              widget.isLoggedIn ? Icons.settings_rounded : Icons.login_rounded,
+              color: Colors.white,
+            ),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SettingsPage(
-                    fullName: widget.fullName,
-                    email: widget.email,
+              if (widget.isLoggedIn) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SettingsPage(
+                      fullName: widget.fullName ?? "Guest User",
+                      email: widget.email ?? "guest@example.com",
+                    ),
                   ),
-                ),
-              );
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const WelcomePage()),
+                );
+              }
             },
           ),
         ),
@@ -290,7 +302,9 @@ class _DashboardHomeState extends State<DashboardHome>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "Community Trust Rating",
+                      widget.isLoggedIn
+                          ? "Post items to earn points!"
+                          : "Login to see your score",
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.white.withOpacity(0.6),
@@ -311,7 +325,7 @@ class _DashboardHomeState extends State<DashboardHome>
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  "500",
+                  widget.isLoggedIn ? "${widget.creditScore}" : "--",
                   style: GoogleFonts.poppins(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,

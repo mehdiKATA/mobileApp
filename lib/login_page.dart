@@ -44,7 +44,6 @@ class _LoginPageState extends State<LoginPage>
     super.dispose();
   }
 
-  // ================= Login HTTP request =================
   Future<void> loginUser() async {
     try {
       final url = Uri.parse("http://localhost:3000/login");
@@ -68,15 +67,18 @@ class _LoginPageState extends State<LoginPage>
           ),
         );
 
-        // Navigate to dashboard and pass user data
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
             builder: (_) => DashboardPage(
               fullName: userData['user']['full_name'],
               email: userData['user']['email'],
+              userId: userData['user']['id'],
+              creditScore: userData['user']['credit_score'] ?? 0,
+              isLoggedIn: true,
             ),
           ),
+          (route) => false,
         );
       } else {
         final errorData = jsonDecode(response.body);
@@ -138,7 +140,6 @@ class _LoginPageState extends State<LoginPage>
                       ),
                     ),
                     const SizedBox(height: 50),
-
                     _buildGlassTextField(
                       controller: emailController,
                       hint: "Email",
@@ -207,9 +208,7 @@ class _LoginPageState extends State<LoginPage>
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () {
-                            loginUser();
-                          },
+                          onTap: loginUser,
                           borderRadius: BorderRadius.circular(28),
                           child: Center(
                             child: Text(

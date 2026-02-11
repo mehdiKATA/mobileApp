@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'welcome_page.dart'; // Your welcome page after signup
+import 'login_page.dart';
 import 'package:http/http.dart' as http;
 
 class SignupPage extends StatefulWidget {
@@ -43,6 +43,10 @@ class _SignupPageState extends State<SignupPage>
   @override
   void dispose() {
     _animationController.dispose();
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    passwordController.dispose();
     super.dispose();
   }
 
@@ -77,9 +81,7 @@ class _SignupPageState extends State<SignupPage>
   // ================= Signup HTTP request =================
   Future<void> signupUser() async {
     try {
-      final url = Uri.parse(
-        "http://localhost:3000/signup",
-      ); // Replace with your IP if testing on real device
+      final url = Uri.parse("http://localhost:3000/signup");
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
@@ -99,19 +101,25 @@ class _SignupPageState extends State<SignupPage>
             backgroundColor: Color(0xFF06D6A0),
           ),
         );
+
+        // Navigate to login page
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const WelcomePage()),
+          MaterialPageRoute(builder: (_) => const LoginPage()),
         );
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: ${response.body}")));
+        final errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorData['error'] ?? "Signup failed"),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+      );
     }
   }
 

@@ -4,28 +4,47 @@ import 'LostPage.dart';
 import 'FoundPage.dart';
 
 class AddPage extends StatelessWidget {
-  const AddPage({super.key});
+  final int? userId;
+  final String? fullName;
+  final String? email;
+  final int creditScore;
+  final Function(int)? onScoreUpdated;
+
+  const AddPage({
+    super.key,
+    this.userId,
+    this.fullName,
+    this.email,
+    this.creditScore = 0,
+    this.onScoreUpdated,
+  });
 
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-
-    // dynamically scale text and images
-    final textScale = screenHeight / 900; // based on original design height
-    final imageScaleLost = screenHeight / 5.6; // ~160px original
-    final imageScaleFound = screenHeight / 5; // ~180px original
+    final textScale = screenHeight / 900;
+    final imageScaleLost = screenHeight / 5.6;
+    final imageScaleFound = screenHeight / 5;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Column(
         children: [
-          // ================= RED SECTION (LOST) =================
+          // RED SECTION (LOST)
           Expanded(
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const LostItemPage()),
+                  MaterialPageRoute(
+                    builder: (_) => LostItemPage(
+                      userId: userId,
+                      fullName: fullName,
+                      email: email,
+                      creditScore: creditScore,
+                      onScoreUpdated: onScoreUpdated,
+                    ),
+                  ),
                 );
               },
               child: Container(
@@ -67,13 +86,21 @@ class AddPage extends StatelessWidget {
               ),
             ),
           ),
-          // ================= GREEN SECTION (FOUND) =================
+          // GREEN SECTION (FOUND)
           Expanded(
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const FoundPage()),
+                  MaterialPageRoute(
+                    builder: (_) => FoundPage(
+                      userId: userId,
+                      fullName: fullName,
+                      email: email,
+                      creditScore: creditScore,
+                      onScoreUpdated: onScoreUpdated,
+                    ),
+                  ),
                 );
               },
               child: Container(
@@ -97,7 +124,7 @@ class AddPage extends StatelessWidget {
                         shadows: [
                           Shadow(
                             color: Colors.black.withOpacity(0.3),
-                            offset: Offset(0, 4),
+                            offset: const Offset(0, 4),
                             blurRadius: 10,
                           ),
                         ],

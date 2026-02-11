@@ -3,12 +3,26 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:ui';
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'dashboard_page.dart';
 import 'notification_service.dart';
 
 class LostItemPage extends StatefulWidget {
-  const LostItemPage({super.key});
+  final int? userId;
+  final String? fullName;
+  final String? email;
+  final int creditScore;
+  final Function(int)? onScoreUpdated;
+
+  const LostItemPage({
+    super.key,
+    this.userId,
+    this.fullName,
+    this.email,
+    this.creditScore = 0,
+    this.onScoreUpdated,
+  });
 
   @override
   State<LostItemPage> createState() => _LostItemPageState();
@@ -16,12 +30,18 @@ class LostItemPage extends StatefulWidget {
 
 class _LostItemPageState extends State<LostItemPage> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController dateController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
   File? selectedImage;
   bool isLoading = false;
+  int currentCreditScore = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    currentCreditScore = widget.creditScore;
+  }
 
   final List<String> places = [
     "Tunis",
@@ -47,9 +67,7 @@ class _LostItemPageState extends State<LostItemPage> {
 
   Future<void> pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => selectedImage = File(picked.path));
-    }
+    if (picked != null) setState(() => selectedImage = File(picked.path));
   }
 
   Future<void> pickDate() async {
@@ -72,7 +90,6 @@ class _LostItemPageState extends State<LostItemPage> {
         );
       },
     );
-
     if (picked != null) {
       setState(() {
         dateController.text = "${picked.day}/${picked.month}/${picked.year}";
@@ -80,13 +97,26 @@ class _LostItemPageState extends State<LostItemPage> {
     }
   }
 
+  Future<void> addCreditScore() async {
+    if (widget.userId == null) return;
+    try {
+      final response = await http.post(
+        Uri.parse("http://localhost:3000/user/credit-score/add"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"user_id": widget.userId}),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        currentCreditScore = data['credit_score'];
+        widget.onScoreUpdated?.call(data['credit_score']);
+      }
+    } catch (e) {
+      print("Credit score update error: $e");
+    }
+  }
+
   Future<void> submit() async {
     if (!_formKey.currentState!.validate()) return;
-
-    if (selectedImage == null && descriptionController.text.isEmpty) {
-      _showSnackBar("Description is required if no image is provided", false);
-      return;
-    }
 
     setState(() => isLoading = true);
 
@@ -94,16 +124,34 @@ class _LostItemPageState extends State<LostItemPage> {
 
     if (!mounted) return;
 
+    await addCreditScore();
+
     await NotificationService.show(
       notificationTitle: "✅ Information Received",
-      notificationBody: "We have received your lost item report",
+      notificationBody: "Lost item report submitted! +10 points added!",
     );
 
     setState(() => isLoading = false);
 
-    Navigator.pushReplacement(
+    _showSnackBar("Report submitted! +10 credit score 🎉", true);
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    // Navigate back to dashboard while staying logged in
+    Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const DashboardPage()),
+      MaterialPageRoute(
+        builder: (_) => DashboardPage(
+          fullName: widget.fullName,
+          email: widget.email,
+          userId: widget.userId,
+          creditScore: currentCreditScore,
+          isLoggedIn: true,
+        ),
+      ),
+      (route) => false,
     );
   }
 
@@ -136,7 +184,6 @@ class _LostItemPageState extends State<LostItemPage> {
             child: SafeArea(
               child: Column(
                 children: [
-                  // Header
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: Row(
@@ -180,8 +227,6 @@ class _LostItemPageState extends State<LostItemPage> {
                       ],
                     ),
                   ),
-
-                  // Form
                   Expanded(
                     child: Container(
                       decoration: const BoxDecoration(
@@ -196,8 +241,7 @@ class _LostItemPageState extends State<LostItemPage> {
                         child: ListView(
                           padding: const EdgeInsets.all(24),
                           children: [
-                            // Date field
-                            _buildLabel("When did you lose it?"),
+                            _buildLabel("When did you lose it? *"),
                             const SizedBox(height: 8),
                             GestureDetector(
                               onTap: pickDate,
@@ -214,11 +258,9 @@ class _LostItemPageState extends State<LostItemPage> {
                                 ),
                               ),
                             ),
-
                             const SizedBox(height: 20),
 
-                            // Place dropdown
-                            _buildLabel("Where did you lose it?"),
+                            _buildLabel("Where did you lose it? *"),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
                               value: selectedPlace,
@@ -245,11 +287,10 @@ class _LostItemPageState extends State<LostItemPage> {
                                 fontSize: 16,
                               ),
                             ),
-
                             const SizedBox(height: 20),
 
-                            // Description
-                            _buildLabel("Description (Optional)"),
+                            // Description - OBLIGATORY
+                            _buildLabel("Description *"),
                             const SizedBox(height: 8),
                             TextFormField(
                               controller: descriptionController,
@@ -258,14 +299,16 @@ class _LostItemPageState extends State<LostItemPage> {
                                 "Describe what you lost...",
                                 Icons.description_rounded,
                               ),
+                              validator: (v) => v == null || v.isEmpty
+                                  ? "Description is required"
+                                  : null,
                               style: GoogleFonts.poppins(
                                 color: const Color(0xFF2C3E50),
                               ),
                             ),
-
                             const SizedBox(height: 20),
 
-                            // Image picker
+                            // Photo - OPTIONAL
                             _buildLabel("Add Photo (Optional)"),
                             const SizedBox(height: 8),
                             GestureDetector(
@@ -301,7 +344,7 @@ class _LostItemPageState extends State<LostItemPage> {
                                           ),
                                           const SizedBox(height: 12),
                                           Text(
-                                            "Tap to add photo",
+                                            "Tap to add photo (optional)",
                                             style: GoogleFonts.poppins(
                                               color: Colors.grey[600],
                                               fontSize: 14,
@@ -342,11 +385,9 @@ class _LostItemPageState extends State<LostItemPage> {
                                                   Icons.close,
                                                   color: Color(0xFFFF6B6B),
                                                 ),
-                                                onPressed: () {
-                                                  setState(
-                                                    () => selectedImage = null,
-                                                  );
-                                                },
+                                                onPressed: () => setState(
+                                                  () => selectedImage = null,
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -354,10 +395,8 @@ class _LostItemPageState extends State<LostItemPage> {
                                       ),
                               ),
                             ),
-
                             const SizedBox(height: 40),
 
-                            // Submit button
                             Container(
                               height: 60,
                               decoration: BoxDecoration(
@@ -407,8 +446,6 @@ class _LostItemPageState extends State<LostItemPage> {
             ),
           ),
         ),
-
-        // Loading overlay
         if (isLoading)
           Container(
             color: Colors.black.withOpacity(0.7),

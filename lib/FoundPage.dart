@@ -3,12 +3,26 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:ui';
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'dashboard_page.dart';
 import 'notification_service.dart';
 
 class FoundPage extends StatefulWidget {
-  const FoundPage({super.key});
+  final int? userId;
+  final String? fullName;
+  final String? email;
+  final int creditScore;
+  final Function(int)? onScoreUpdated;
+
+  const FoundPage({
+    super.key,
+    this.userId,
+    this.fullName,
+    this.email,
+    this.creditScore = 0,
+    this.onScoreUpdated,
+  });
 
   @override
   State<FoundPage> createState() => _FoundPageState();
@@ -16,12 +30,18 @@ class FoundPage extends StatefulWidget {
 
 class _FoundPageState extends State<FoundPage> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController dateController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
   File? selectedImage;
   bool isLoading = false;
+  int currentCreditScore = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    currentCreditScore = widget.creditScore;
+  }
 
   final List<String> places = [
     "Tunis",
@@ -47,9 +67,7 @@ class _FoundPageState extends State<FoundPage> {
 
   Future<void> pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => selectedImage = File(picked.path));
-    }
+    if (picked != null) setState(() => selectedImage = File(picked.path));
   }
 
   Future<void> pickDate() async {
@@ -72,7 +90,6 @@ class _FoundPageState extends State<FoundPage> {
         );
       },
     );
-
     if (picked != null) {
       setState(() {
         dateController.text = "${picked.day}/${picked.month}/${picked.year}";
@@ -80,16 +97,30 @@ class _FoundPageState extends State<FoundPage> {
     }
   }
 
+  Future<void> addCreditScore() async {
+    if (widget.userId == null) return;
+    try {
+      final response = await http.post(
+        Uri.parse("http://localhost:3000/user/credit-score/add"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"user_id": widget.userId}),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        currentCreditScore = data['credit_score'];
+        widget.onScoreUpdated?.call(data['credit_score']);
+      }
+    } catch (e) {
+      print("Credit score update error: $e");
+    }
+  }
+
   Future<void> submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Photo is obligatory for Found
     if (selectedImage == null) {
       _showSnackBar("Photo is required for found items", false);
-      return;
-    }
-
-    if (descriptionController.text.isEmpty) {
-      _showSnackBar("Description is required", false);
       return;
     }
 
@@ -99,16 +130,35 @@ class _FoundPageState extends State<FoundPage> {
 
     if (!mounted) return;
 
+    await addCreditScore();
+
     await NotificationService.show(
       notificationTitle: "✅ Information Received",
-      notificationBody: "Thank you for helping the community!",
+      notificationBody:
+          "Thank you for helping the community! +10 points added!",
     );
 
     setState(() => isLoading = false);
 
-    Navigator.pushReplacement(
+    _showSnackBar("Report submitted! +10 credit score 🎉", true);
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    // Navigate back to dashboard while staying logged in
+    Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const DashboardPage()),
+      MaterialPageRoute(
+        builder: (_) => DashboardPage(
+          fullName: widget.fullName,
+          email: widget.email,
+          userId: widget.userId,
+          creditScore: currentCreditScore,
+          isLoggedIn: true,
+        ),
+      ),
+      (route) => false,
     );
   }
 
@@ -141,7 +191,6 @@ class _FoundPageState extends State<FoundPage> {
             child: SafeArea(
               child: Column(
                 children: [
-                  // Header
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: Row(
@@ -185,8 +234,6 @@ class _FoundPageState extends State<FoundPage> {
                       ],
                     ),
                   ),
-
-                  // Form
                   Expanded(
                     child: Container(
                       decoration: const BoxDecoration(
@@ -201,7 +248,6 @@ class _FoundPageState extends State<FoundPage> {
                         child: ListView(
                           padding: const EdgeInsets.all(24),
                           children: [
-                            // Date field
                             _buildLabel("When did you find it? *"),
                             const SizedBox(height: 8),
                             GestureDetector(
@@ -219,10 +265,8 @@ class _FoundPageState extends State<FoundPage> {
                                 ),
                               ),
                             ),
-
                             const SizedBox(height: 20),
 
-                            // Place dropdown
                             _buildLabel("Where did you find it? *"),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
@@ -250,10 +294,9 @@ class _FoundPageState extends State<FoundPage> {
                                 fontSize: 16,
                               ),
                             ),
-
                             const SizedBox(height: 20),
 
-                            // Description
+                            // Description - OBLIGATORY
                             _buildLabel("Description *"),
                             const SizedBox(height: 8),
                             TextFormField(
@@ -270,10 +313,9 @@ class _FoundPageState extends State<FoundPage> {
                                 color: const Color(0xFF2C3E50),
                               ),
                             ),
-
                             const SizedBox(height: 20),
 
-                            // Image picker - REQUIRED
+                            // Photo - OBLIGATORY
                             _buildLabel("Add Photo * (Required)"),
                             const SizedBox(height: 8),
                             GestureDetector(
@@ -363,11 +405,9 @@ class _FoundPageState extends State<FoundPage> {
                                                   Icons.close,
                                                   color: Color(0xFFFF6B6B),
                                                 ),
-                                                onPressed: () {
-                                                  setState(
-                                                    () => selectedImage = null,
-                                                  );
-                                                },
+                                                onPressed: () => setState(
+                                                  () => selectedImage = null,
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -399,10 +439,8 @@ class _FoundPageState extends State<FoundPage> {
                                       ),
                               ),
                             ),
-
                             const SizedBox(height: 40),
 
-                            // Submit button
                             Container(
                               height: 60,
                               decoration: BoxDecoration(
@@ -452,8 +490,6 @@ class _FoundPageState extends State<FoundPage> {
             ),
           ),
         ),
-
-        // Loading overlay
         if (isLoading)
           Container(
             color: Colors.black.withOpacity(0.7),
