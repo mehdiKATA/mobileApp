@@ -8,107 +8,111 @@ class AddPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFE74C3C), // Red background
+    final screenHeight = MediaQuery.of(context).size.height;
 
-      // APP BAR
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFE74C3C),
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            GestureDetector(
+    // dynamically scale text and images
+    final textScale = screenHeight / 900; // based on original design height
+    final imageScaleLost = screenHeight / 5.6; // ~160px original
+    final imageScaleFound = screenHeight / 5; // ~180px original
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Column(
+        children: [
+          // ================= RED SECTION (LOST) =================
+          Expanded(
+            child: GestureDetector(
               onTap: () {
-                Navigator.pop(context);  // ✔ FIXED — goes back correctly
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LostItemPage()),
+                );
               },
               child: Container(
-                padding: const EdgeInsets.all(8),
+                width: double.infinity,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFE74C3C),
-                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFFF6B6B), Color(0xFFEE5A6F)],
+                  ),
                 ),
-                child: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                  size: 28,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Dhaya3t ?",
+                      style: GoogleFonts.righteous(
+                        color: Colors.white,
+                        fontSize: 80 * textScale,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.3),
+                            offset: const Offset(0, 4),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 30 * textScale),
+                    Image.asset(
+                      "images/scared.png",
+                      height: imageScaleLost,
+                      fit: BoxFit.contain,
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-
-      // PAGE BODY
-      body: Column(
-        children: [
+          ),
+          // ================= GREEN SECTION (FOUND) =================
           Expanded(
-            child: ListView(
-              children: [
-                // ================= RED SECTION =================
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LostItemPage()),
-                    );
-                  },
-                  child: Container(
-                    height: 350,
-                    color: const Color(0xFFE74C3C),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Dhaya3t ?",
-                          style: GoogleFonts.julee(
-                            color: Colors.black,
-                            fontSize: 90,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Image.asset(
-                          "images/scared.png",
-                          height: 140,
-                          fit: BoxFit.contain,
-                        ),
-                      ],
-                    ),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const FoundPage()),
+                );
+              },
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF06D6A0), Color(0xFF1DD1A1)],
                   ),
                 ),
-
-                // ================= GREEN SECTION =================
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const FoundPage()),
-                    );
-                  },
-                  child: Container(
-                    height: 350,
-                    color: const Color(0xFF2ECC71),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "L9it ?",
-                          style: GoogleFonts.julee(
-                            color: Colors.black,
-                            fontSize: 90,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "L9it ?",
+                      style: GoogleFonts.righteous(
+                        color: Colors.white,
+                        fontSize: 80 * textScale,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.3),
+                            offset: Offset(0, 4),
+                            blurRadius: 10,
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        Image.asset(
-                          "images/found.png",
-                          height: 170,
-                          fit: BoxFit.contain,
-                        ),
-                      ],
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
+                    SizedBox(height: 30 * textScale),
+                    Image.asset(
+                      "images/found.png",
+                      height: imageScaleFound,
+                      fit: BoxFit.contain,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],

@@ -9,104 +9,175 @@ class WelcomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF00C0E8),
-      body: SingleChildScrollView(
-        // <-- FIX : scroll automatique si petit écran
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 40),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo circle
-                ClipOval(
-                  child: Image.asset(
-                    'assets/images/icon.png',
-                    width: 300, // <-- réduit pour éviter overflow
-                    height: 300,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                Text(
-                  "L9itha ?",
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.julee(
-                    fontSize: 70, // <-- réduit pour éviter overflow
-                    color: const Color(0xFF444444),
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // LOGIN BUTTON
-                SizedBox(
-                  width: 300,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF41D5AB),
-                      foregroundColor: Colors.white,
-                      side: BorderSide(
-                        // <-- THIS ADDS THE STROKE
-                        color: Color(0xFF444444), // stroke color
-                        width: 2, // thickness
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 20),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF667eea), // Soft purple
+              Color(0xFF764ba2), // Deep purple
+              Color(0xFFf093fb), // Pink accent
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo with glow effect
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.3),
+                          blurRadius: 40,
+                          spreadRadius: 10,
+                        ),
+                      ],
                     ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/icon.png',
+                        width: 180,
+                        height: 180,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // App title with shadow
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Colors.white, Color(0xFFFFF3E0)],
+                    ).createShader(bounds),
+                    child: Text(
+                      "L9itha ?",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.righteous(
+                        fontSize: 72,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.3),
+                            offset: const Offset(0, 4),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Subtitle
+                  Text(
+                    "Your Lost & Found Community",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+
+                  const SizedBox(height: 60),
+
+                  // Login Button with gradient
+                  _buildGradientButton(
+                    context: context,
+                    label: "Login",
+                    gradientColors: const [
+                      Color(0xFF06D6A0),
+                      Color(0xFF00B4D8),
+                    ],
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const LoginPage()),
                       );
                     },
-                    child: Text(
-                      "Login",
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 19,
-                        // keeps your color
-                      ),
-                    ),
                   ),
-                ),
 
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // SIGN UP BUTTON
-                SizedBox(
-                  width: 300,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF41D5AB),
-                      side: BorderSide(
-                        // <-- THIS ADDS THE STROKE
-                        color: Color(0xFF444444), // stroke color
-                        width: 2, // thickness
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                    ),
+                  // Sign Up Button with different gradient
+                  _buildGradientButton(
+                    context: context,
+                    label: "Sign Up",
+                    gradientColors: const [
+                      Color(0xFFFF6B9D),
+                      Color(0xFFC06C84),
+                    ],
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const SignupPage()),
                       );
                     },
-                    child: Text(
-                      "Sign Up",
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 19,
-                        color: const Color(0xFF41D5AB), // keeps your color
-                      ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // Decorative bottom text
+                  Text(
+                    "Connect • Find • Return",
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.6),
+                      letterSpacing: 2,
                     ),
                   ),
-                ),
-                
-              ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGradientButton({
+    required BuildContext context,
+    required String label,
+    required List<Color> gradientColors,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      width: 280,
+      height: 60,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: gradientColors),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors[0].withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(30),
+          child: Center(
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                letterSpacing: 1,
+              ),
             ),
           ),
         ),

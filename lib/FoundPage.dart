@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:ui';
 
 import 'dashboard_page.dart';
 import 'notification_service.dart';
@@ -44,7 +45,6 @@ class _FoundPageState extends State<FoundPage> {
 
   String? selectedPlace;
 
-  // Pick image
   Future<void> pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
@@ -52,13 +52,25 @@ class _FoundPageState extends State<FoundPage> {
     }
   }
 
-  // Pick date
   Future<void> pickDate() async {
     DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF06D6A0),
+              onPrimary: Colors.white,
+              surface: Color(0xFF2C3E50),
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -71,22 +83,13 @@ class _FoundPageState extends State<FoundPage> {
   Future<void> submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // All fields are mandatory for found items
     if (selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("La photo est obligatoire."),
-        ),
-      );
+      _showSnackBar("Photo is required for found items", false);
       return;
     }
 
     if (descriptionController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("La description est obligatoire."),
-        ),
-      );
+      _showSnackBar("Description is required", false);
       return;
     }
 
@@ -96,18 +99,29 @@ class _FoundPageState extends State<FoundPage> {
 
     if (!mounted) return;
 
-    // Show system notification
     await NotificationService.show(
-      notificationTitle: "✔ Informations reçues",
-      notificationBody: "Nous avons bien reçu vos informations",
+      notificationTitle: "✅ Information Received",
+      notificationBody: "Thank you for helping the community!",
     );
 
     setState(() => isLoading = false);
 
-    // Navigate to dashboard
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const DashboardPage()),
+    );
+  }
+
+  void _showSnackBar(String message, bool isSuccess) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.poppins()),
+        backgroundColor: isSuccess
+            ? const Color(0xFF06D6A0)
+            : const Color(0xFFFF6B6B),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 
@@ -116,226 +130,373 @@ class _FoundPageState extends State<FoundPage> {
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: const Color(0xFF41D5AB),
-
-          appBar: AppBar(
-            backgroundColor: const Color(0xFF41D5AB),
-            elevation: 0,
-            title: const Text(
-              "L9it 7aja",
-              style: TextStyle(color: Colors.white, fontSize: 22),
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF06D6A0), Color(0xFF1DD1A1)],
+              ),
             ),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
-
-          body: Center(
-            child: Container(
-              width: 330,
-              padding: const EdgeInsets.all(16),
-
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  children: [
-                    const SizedBox(height: 20),
-
-                    // DATE (OBLIGATORY)
-                    GestureDetector(
-                      onTap: pickDate,
-                      child: AbsorbPointer(
-                        child: TextFormField(
-                          controller: dateController,
-                          decoration: _dec("Date (obligatoire)", Icons.calendar_today),
-                          validator: (v) =>
-                              v == null || v.isEmpty ? "Wakteh l9it?" : null,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // PLACE (OBLIGATORY)
-                    DropdownButtonFormField<String>(
-                      value: selectedPlace,
-                      isExpanded: true,
-                      decoration: _dec("Win l9it? (obligatoire)", Icons.place),
-                      items: places
-                          .map(
-                            (p) => DropdownMenuItem(value: p, child: Text(p)),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => selectedPlace = v),
-                      validator: (v) => v == null ? "Win l9it?" : null,
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // DESCRIPTION (OBLIGATORY)
-                    TextFormField(
-                      controller: descriptionController,
-                      maxLines: 4,
-                      decoration: _dec("Description (obligatoire)", Icons.description),
-                      validator: (v) =>
-                          v == null || v.isEmpty ? "Description obligatoire" : null,
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // IMAGE (OBLIGATORY)
-                    GestureDetector(
-                      onTap: pickImage,
-                      child: Container(
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selectedImage == null 
-                                ? Colors.red.withOpacity(0.5) 
-                                : Colors.black26,
-                            width: selectedImage == null ? 2 : 1,
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new,
+                              color: Colors.white,
+                            ),
+                            onPressed: () => Navigator.pop(context),
                           ),
                         ),
-                        child: selectedImage == null
-                            ? Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(
-                                    Icons.add_a_photo,
-                                    size: 40,
-                                    color: Colors.red,
-                                  ),
-                                  SizedBox(height: 10),
-                                  Text(
-                                    "Photo (obligatoire)",
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(
-                                  selectedImage!,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Found Something?",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
                               ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // SUBMIT BUTTON
-                    SizedBox(
-                      height: 55,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00C0E8),
-                          side: const BorderSide(
-                            color: Color(0xFF444444),
-                            width: 2,
-                          ),
-                          elevation: 0,
-                          shadowColor: Colors.transparent,
-                        ),
-                        onPressed: isLoading ? null : submit,
-                        child: Text(
-                          "Submit",
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                              Text(
+                                "Help return it to the owner",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+
+                  // Form
+                  Expanded(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: ListView(
+                          padding: const EdgeInsets.all(24),
+                          children: [
+                            // Date field
+                            _buildLabel("When did you find it? *"),
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: pickDate,
+                              child: AbsorbPointer(
+                                child: TextFormField(
+                                  controller: dateController,
+                                  decoration: _inputDecoration(
+                                    "Select Date",
+                                    Icons.calendar_today_rounded,
+                                  ),
+                                  validator: (v) => v == null || v.isEmpty
+                                      ? "Date is required"
+                                      : null,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // Place dropdown
+                            _buildLabel("Where did you find it? *"),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              value: selectedPlace,
+                              isExpanded: true,
+                              decoration: _inputDecoration(
+                                "Select Location",
+                                Icons.location_on_rounded,
+                              ),
+                              items: places
+                                  .map(
+                                    (p) => DropdownMenuItem(
+                                      value: p,
+                                      child: Text(p),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) =>
+                                  setState(() => selectedPlace = v),
+                              validator: (v) =>
+                                  v == null ? "Location is required" : null,
+                              dropdownColor: Colors.white,
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF2C3E50),
+                                fontSize: 16,
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // Description
+                            _buildLabel("Description *"),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: descriptionController,
+                              maxLines: 4,
+                              decoration: _inputDecoration(
+                                "Describe what you found...",
+                                Icons.description_rounded,
+                              ),
+                              validator: (v) => v == null || v.isEmpty
+                                  ? "Description is required"
+                                  : null,
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF2C3E50),
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // Image picker - REQUIRED
+                            _buildLabel("Add Photo * (Required)"),
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: pickImage,
+                              child: Container(
+                                height: 180,
+                                decoration: BoxDecoration(
+                                  color: selectedImage == null
+                                      ? const Color(0xFFFFF3E0)
+                                      : const Color(0xFFF8F9FA),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: selectedImage == null
+                                        ? const Color(0xFFFF9800)
+                                        : const Color(0xFF06D6A0),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: selectedImage == null
+                                    ? Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: const Color(
+                                                0xFF06D6A0,
+                                              ).withOpacity(0.1),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.add_a_photo_rounded,
+                                              size: 40,
+                                              color: Color(0xFF06D6A0),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            "📸 Photo Required",
+                                            style: GoogleFonts.poppins(
+                                              color: const Color(0xFFFF9800),
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            "Tap to add photo",
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.grey[600],
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Stack(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              18,
+                                            ),
+                                            child: Image.file(
+                                              selectedImage!,
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                shape: BoxShape.circle,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.2),
+                                                    blurRadius: 8,
+                                                  ),
+                                                ],
+                                              ),
+                                              child: IconButton(
+                                                icon: const Icon(
+                                                  Icons.close,
+                                                  color: Color(0xFFFF6B6B),
+                                                ),
+                                                onPressed: () {
+                                                  setState(
+                                                    () => selectedImage = null,
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            bottom: 8,
+                                            left: 8,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF06D6A0),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                "✓ Photo Added",
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.white,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 40),
+
+                            // Submit button
+                            Container(
+                              height: 60,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF06D6A0),
+                                    Color(0xFF1DD1A1),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(30),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF06D6A0,
+                                    ).withOpacity(0.4),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: isLoading ? null : submit,
+                                  borderRadius: BorderRadius.circular(30),
+                                  child: Center(
+                                    child: Text(
+                                      "Submit Report",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
 
-        // LOADING OVERLAY
+        // Loading overlay
         if (isLoading)
           Container(
             color: Colors.black.withOpacity(0.7),
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(30),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 20,
-                      spreadRadius: 5,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.all(40),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Animated circular progress with gradient effect
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color(0xFF41D5AB).withOpacity(0.2),
-                            const Color(0xFF00C0E8).withOpacity(0.2),
-                          ],
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Color(0xFF06D6A0),
+                          ),
+                          strokeWidth: 4,
                         ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF41D5AB)),
-                          strokeWidth: 6,
+                        const SizedBox(height: 24),
+                        Text(
+                          "Submitting...",
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF2C3E50),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Thank you for being awesome! 🎉",
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 25),
-                    // Icon
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00C0E8).withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.check_circle_outline,
-                        color: Color(0xFF00C0E8),
-                        size: 40,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      "Jari el ta7mil...",
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF444444),
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Ettasjil fi adhika",
-                      style: GoogleFonts.inter(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -344,16 +505,36 @@ class _FoundPageState extends State<FoundPage> {
     );
   }
 
-  InputDecoration _dec(String hint, IconData icon) {
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: GoogleFonts.poppins(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF2C3E50),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint, IconData icon) {
     return InputDecoration(
       hintText: hint,
+      hintStyle: GoogleFonts.poppins(color: Colors.grey[400]),
       filled: true,
-      fillColor: Colors.white,
-      prefixIcon: Icon(icon),
-      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+      fillColor: const Color(0xFFF8F9FA),
+      prefixIcon: Icon(icon, color: const Color(0xFF06D6A0)),
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF06D6A0), width: 2),
       ),
     );
   }

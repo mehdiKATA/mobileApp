@@ -11,8 +11,7 @@ class NotificationService {
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
     // iOS
-    const DarwinInitializationSettings iosInit =
-        DarwinInitializationSettings(
+    const DarwinInitializationSettings iosInit = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
@@ -34,27 +33,21 @@ class NotificationService {
     // ANDROID
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-      'lost_item_channel', // channel id
-      'Lost Item Notifications', // channel name
-      channelDescription: 'Notification after submitting lost item',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
+          'lost_item_channel', // channel id
+          'Lost Item Notifications', // channel name
+          channelDescription: 'Notification after submitting lost item',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
 
     // iOS
-    const DarwinNotificationDetails iosDetails =
-        DarwinNotificationDetails();
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails();
 
     const NotificationDetails details = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
 
-    await _notifications.show(
-      0,
-      notificationTitle,
-      notificationBody,
-      details,
-    );
+    await _notifications.show(0, notificationTitle, notificationBody, details);
   }
 }

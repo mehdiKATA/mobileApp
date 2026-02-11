@@ -20,9 +20,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
 
       // Keep system fonts (safe)
-      theme: ThemeData(
-        fontFamily: null,
-      ),
+      theme: ThemeData(fontFamily: null),
 
       home: const WelcomePage(),
     );
