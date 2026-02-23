@@ -21,11 +21,6 @@ class AddPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final textScale = screenHeight / 900;
-    final imageScaleLost = screenHeight / 5.6;
-    final imageScaleFound = screenHeight / 5;
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: Column(
@@ -49,6 +44,7 @@ class AddPage extends StatelessWidget {
               },
               child: Container(
                 width: double.infinity,
+                clipBehavior: Clip.hardEdge,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -63,7 +59,7 @@ class AddPage extends StatelessWidget {
                       "Dhaya3t ?",
                       style: GoogleFonts.righteous(
                         color: Colors.white,
-                        fontSize: 80 * textScale,
+                        fontSize: 80,
                         fontWeight: FontWeight.bold,
                         shadows: [
                           Shadow(
@@ -73,12 +69,11 @@ class AddPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 30 * textScale),
+                    const SizedBox(height: 10),
                     Image.asset(
                       "images/scared.png",
-                      height: imageScaleLost,
+                      height: 130,
                       fit: BoxFit.contain,
                     ),
                   ],
@@ -86,6 +81,7 @@ class AddPage extends StatelessWidget {
               ),
             ),
           ),
+
           // GREEN SECTION (FOUND)
           Expanded(
             child: GestureDetector(
@@ -105,6 +101,7 @@ class AddPage extends StatelessWidget {
               },
               child: Container(
                 width: double.infinity,
+                clipBehavior: Clip.hardEdge,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -119,7 +116,7 @@ class AddPage extends StatelessWidget {
                       "L9it ?",
                       style: GoogleFonts.righteous(
                         color: Colors.white,
-                        fontSize: 80 * textScale,
+                        fontSize: 80,
                         fontWeight: FontWeight.bold,
                         shadows: [
                           Shadow(
@@ -129,12 +126,11 @@ class AddPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 30 * textScale),
+                    const SizedBox(height: 10),
                     Image.asset(
                       "images/found.png",
-                      height: imageScaleFound,
+                      height: 140,
                       fit: BoxFit.contain,
                     ),
                   ],

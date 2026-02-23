@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+
 import 'dashboard_page.dart';
 import 'notification_service.dart';
+
+const String baseUrl = 'http://localhost:3000/api';
 
 class LostItemPage extends StatefulWidget {
   final int? userId;
@@ -33,14 +38,62 @@ class _LostItemPageState extends State<LostItemPage> {
   final TextEditingController dateController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
-  File? selectedImage;
+  XFile? selectedImageFile;
+  Uint8List? selectedImageBytes;
+  DateTime? selectedDate;
   bool isLoading = false;
-  int currentCreditScore = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    currentCreditScore = widget.creditScore;
+  int get userId => widget.userId ?? 1;
+
+  Future<String?> imageToBase64() async {
+    if (selectedImageFile == null) return null;
+    try {
+      final bytes = await selectedImageFile!.readAsBytes();
+      return base64Encode(bytes);
+    } catch (e) {
+      print('Error converting image to base64: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>> submitLostItemToDb({
+    required String lostDate,
+    required String lostPlace,
+    required String description,
+  }) async {
+    try {
+      String? photoBase64 = await imageToBase64();
+
+      final body = <String, dynamic>{
+        'user_id': userId,
+        'lost_date': lostDate,
+        'lost_place': lostPlace,
+        'description': description,
+      };
+
+      if (photoBase64 != null) {
+        body['photo'] = photoBase64;
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/lost-items'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return {'success': true, 'data': data};
+      } else {
+        print('Server error: ${response.body}');
+        return {
+          'success': false,
+          'error': 'Server error: ${response.statusCode} - ${response.body}',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: $e'};
+    }
   }
 
   final List<String> places = [
@@ -66,8 +119,18 @@ class _LostItemPageState extends State<LostItemPage> {
   String? selectedPlace;
 
   Future<void> pickImage() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked != null) setState(() => selectedImage = File(picked.path));
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+      maxWidth: 800,
+    );
+    if (picked != null) {
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        selectedImageFile = picked;
+        selectedImageBytes = bytes;
+      });
+    }
   }
 
   Future<void> pickDate() async {
@@ -92,26 +155,9 @@ class _LostItemPageState extends State<LostItemPage> {
     );
     if (picked != null) {
       setState(() {
+        selectedDate = picked;
         dateController.text = "${picked.day}/${picked.month}/${picked.year}";
       });
-    }
-  }
-
-  Future<void> addCreditScore() async {
-    if (widget.userId == null) return;
-    try {
-      final response = await http.post(
-        Uri.parse("http://localhost:3000/user/credit-score/add"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"user_id": widget.userId}),
-      );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        currentCreditScore = data['credit_score'];
-        widget.onScoreUpdated?.call(data['credit_score']);
-      }
-    } catch (e) {
-      print("Credit score update error: $e");
     }
   }
 
@@ -120,39 +166,60 @@ class _LostItemPageState extends State<LostItemPage> {
 
     setState(() => isLoading = true);
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      String formattedDate = selectedDate != null
+          ? "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}"
+          : DateTime.now().toIso8601String().split('T')[0];
 
-    if (!mounted) return;
+      final result = await submitLostItemToDb(
+        lostDate: formattedDate,
+        lostPlace: selectedPlace!,
+        description: descriptionController.text,
+      );
 
-    await addCreditScore();
+      setState(() => isLoading = false);
+      if (!mounted) return;
 
-    await NotificationService.show(
-      notificationTitle: "✅ Information Received",
-      notificationBody: "Lost item report submitted! +10 points added!",
-    );
+      if (result['success']) {
+        // ✅ Read new credit score from server response and notify parent
+        final newScore = result['data']['credit_score'];
+        final int updatedScore = newScore != null
+            ? newScore as int
+            : widget.creditScore + 10;
 
-    setState(() => isLoading = false);
+        // ✅ Save updated score to SharedPreferences so it persists across logout/login
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('creditScore', updatedScore);
 
-    _showSnackBar("Report submitted! +10 credit score 🎉", true);
+        if (newScore != null && widget.onScoreUpdated != null) {
+          widget.onScoreUpdated!(updatedScore);
+        }
 
-    await Future.delayed(const Duration(seconds: 1));
+        await NotificationService.show(
+          notificationTitle: "✅ Lost Item Reported",
+          notificationBody: "Your lost item has been saved to database",
+        );
+        _showSnackBar("Lost item reported successfully! +10 points 🎉", true);
 
-    if (!mounted) return;
-
-    // Navigate back to dashboard while staying logged in
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DashboardPage(
-          fullName: widget.fullName,
-          email: widget.email,
-          userId: widget.userId,
-          creditScore: currentCreditScore,
-          isLoggedIn: true,
-        ),
-      ),
-      (route) => false,
-    );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DashboardPage(
+              userId: widget.userId,
+              fullName: widget.fullName,
+              email: widget.email,
+              creditScore: updatedScore,
+              isLoggedIn: true,
+            ),
+          ),
+        );
+      } else {
+        _showSnackBar("Error: ${result['error']}", false);
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+      _showSnackBar("An error occurred: $e", false);
+    }
   }
 
   void _showSnackBar(String message, bool isSuccess) {
@@ -166,6 +233,18 @@ class _LostItemPageState extends State<LostItemPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
+  }
+
+  Widget _buildImagePreview() {
+    if (selectedImageBytes != null) {
+      return Image.memory(
+        selectedImageBytes!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    }
+    return const SizedBox();
   }
 
   @override
@@ -259,7 +338,6 @@ class _LostItemPageState extends State<LostItemPage> {
                               ),
                             ),
                             const SizedBox(height: 20),
-
                             _buildLabel("Where did you lose it? *"),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
@@ -288,8 +366,6 @@ class _LostItemPageState extends State<LostItemPage> {
                               ),
                             ),
                             const SizedBox(height: 20),
-
-                            // Description - OBLIGATORY
                             _buildLabel("Description *"),
                             const SizedBox(height: 8),
                             TextFormField(
@@ -307,8 +383,6 @@ class _LostItemPageState extends State<LostItemPage> {
                               ),
                             ),
                             const SizedBox(height: 20),
-
-                            // Photo - OPTIONAL
                             _buildLabel("Add Photo (Optional)"),
                             const SizedBox(height: 8),
                             GestureDetector(
@@ -323,7 +397,7 @@ class _LostItemPageState extends State<LostItemPage> {
                                     width: 2,
                                   ),
                                 ),
-                                child: selectedImage == null
+                                child: selectedImageBytes == null
                                     ? Column(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
@@ -344,7 +418,7 @@ class _LostItemPageState extends State<LostItemPage> {
                                           ),
                                           const SizedBox(height: 12),
                                           Text(
-                                            "Tap to add photo (optional)",
+                                            "Tap to add photo",
                                             style: GoogleFonts.poppins(
                                               color: Colors.grey[600],
                                               fontSize: 14,
@@ -358,12 +432,7 @@ class _LostItemPageState extends State<LostItemPage> {
                                             borderRadius: BorderRadius.circular(
                                               18,
                                             ),
-                                            child: Image.file(
-                                              selectedImage!,
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                              height: double.infinity,
-                                            ),
+                                            child: _buildImagePreview(),
                                           ),
                                           Positioned(
                                             top: 8,
@@ -385,8 +454,33 @@ class _LostItemPageState extends State<LostItemPage> {
                                                   Icons.close,
                                                   color: Color(0xFFFF6B6B),
                                                 ),
-                                                onPressed: () => setState(
-                                                  () => selectedImage = null,
+                                                onPressed: () => setState(() {
+                                                  selectedImageFile = null;
+                                                  selectedImageBytes = null;
+                                                }),
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            bottom: 8,
+                                            left: 8,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFF6B6B),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                "✓ Photo Added",
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.white,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
                                                 ),
                                               ),
                                             ),
@@ -396,7 +490,6 @@ class _LostItemPageState extends State<LostItemPage> {
                               ),
                             ),
                             const SizedBox(height: 40),
-
                             Container(
                               height: 60,
                               decoration: BoxDecoration(
@@ -476,6 +569,14 @@ class _LostItemPageState extends State<LostItemPage> {
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF2C3E50),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Saving to database",
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.grey[600],
                           ),
                         ),
                       ],

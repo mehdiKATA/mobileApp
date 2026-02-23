@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui';
 import 'welcome_page.dart';
+import 'dashboard_page.dart';
 
 class SettingsPage extends StatefulWidget {
   final String fullName;
@@ -19,6 +21,19 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool pushNotifications = true;
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // clear saved session
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const DashboardPage(isLoggedIn: false)),
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,11 +93,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: ListView(
                     padding: const EdgeInsets.all(24),
                     children: [
-                      // Profile section
                       _buildProfileCard(),
                       const SizedBox(height: 30),
-
-                      // Account settings
                       _buildSectionTitle("Account"),
                       const SizedBox(height: 12),
                       _buildMenuItem(
@@ -104,10 +116,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           const Color(0xFFC06C84),
                         ],
                       ),
-
                       const SizedBox(height: 30),
-
-                      // Support section
                       _buildSectionTitle("Support"),
                       const SizedBox(height: 12),
                       _buildMenuItem(
@@ -119,17 +128,11 @@ class _SettingsPageState extends State<SettingsPage> {
                           const Color(0xFF00B4D8),
                         ],
                       ),
-
                       const SizedBox(height: 30),
-
-                      // Notifications section
                       _buildSectionTitle("Preferences"),
                       const SizedBox(height: 12),
                       _buildNotificationToggle(),
-
                       const SizedBox(height: 30),
-
-                      // Logout
                       _buildLogoutButton(),
                     ],
                   ),
@@ -339,11 +342,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           Switch(
             value: pushNotifications,
-            onChanged: (value) {
-              setState(() {
-                pushNotifications = value;
-              });
-            },
+            onChanged: (value) => setState(() => pushNotifications = value),
             activeColor: const Color(0xFF06D6A0),
           ),
         ],
@@ -371,7 +370,6 @@ class _SettingsPageState extends State<SettingsPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Show logout dialog
             showDialog(
               context: context,
               builder: (context) => AlertDialog(
@@ -396,14 +394,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   TextButton(
                     onPressed: () {
-                      Navigator.pop(context); // Close the dialog
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const WelcomePage(),
-                        ),
-                        (route) => false, // Remove all previous routes
-                      );
+                      Navigator.pop(context);
+                      logout(); // calls the logout function above
                     },
                     child: Text(
                       "Logout",

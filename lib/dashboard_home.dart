@@ -4,6 +4,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:ui';
 import 'settings_page.dart';
 import 'welcome_page.dart';
+import 'history_page.dart';
+import 'stats_page.dart'; // ADD THIS
 
 class DashboardHome extends StatefulWidget {
   final String? fullName;
@@ -47,6 +49,49 @@ class _DashboardHomeState extends State<DashboardHome>
     super.dispose();
   }
 
+  void _showLoginRequired(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(
+              Icons.lock_outline_rounded,
+              color: Colors.orange[700],
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            const Text("Login Required"),
+          ],
+        ),
+        content: const Text("You need to login to access this feature."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel", style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WelcomePage()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF667eea),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text("Login", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -75,6 +120,21 @@ class _DashboardHomeState extends State<DashboardHome>
                     const Color(0xFFFF6B9D),
                     const Color(0xFFC06C84),
                   ],
+                  onTap: () {
+                    if (!widget.isLoggedIn) {
+                      _showLoginRequired(context);
+                      return;
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => HistoryPage(
+                          userId: widget.userId,
+                          isLoggedIn: widget.isLoggedIn,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
                 _buildMenuCard(
@@ -85,6 +145,21 @@ class _DashboardHomeState extends State<DashboardHome>
                     const Color(0xFF06D6A0),
                     const Color(0xFF00B4D8),
                   ],
+                  onTap: () {
+                    if (!widget.isLoggedIn) {
+                      _showLoginRequired(context);
+                      return;
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => StatsPage(
+                          userId: widget.userId,
+                          isLoggedIn: widget.isLoggedIn,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 25),
                 _buildCreditScore(),
@@ -190,6 +265,7 @@ class _DashboardHomeState extends State<DashboardHome>
     required String title,
     required String subtitle,
     required List<Color> gradientColors,
+    required VoidCallback onTap,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -206,7 +282,7 @@ class _DashboardHomeState extends State<DashboardHome>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: onTap,
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(20),

@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'dashboard_page.dart';
 import 'forgot_password_page.dart';
-import 'package:http/http.dart' as http;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,6 +17,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage>
     with SingleTickerProviderStateMixin {
   bool _obscurePassword = true;
+  bool _isLoading = false;
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
 
@@ -45,36 +47,49 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> loginUser() async {
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      _showSnackBar("Please fill in all fields", false);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
     try {
-      final url = Uri.parse("http://localhost:3000/login");
       final response = await http.post(
-        url,
+        Uri.parse("http://localhost:3000/login"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "email": emailController.text,
+          "email": emailController.text.trim(),
           "password": passwordController.text,
         }),
       );
 
+      setState(() => _isLoading = false);
+
       if (response.statusCode == 200) {
         final userData = jsonDecode(response.body);
+        final user = userData['user'];
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Welcome ${userData['user']['full_name']}! 🎉"),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xFF06D6A0),
-          ),
-        );
+        // Save session to SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true);
+        await prefs.setInt('userId', user['id']);
+        await prefs.setString('fullName', user['full_name']);
+        await prefs.setString('email', user['email']);
+        await prefs.setInt('creditScore', user['credit_score'] ?? 0);
+
+        if (!mounted) return;
+
+        _showSnackBar("Welcome ${user['full_name']}! 🎉", true);
 
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
             builder: (_) => DashboardPage(
-              fullName: userData['user']['full_name'],
-              email: userData['user']['email'],
-              userId: userData['user']['id'],
-              creditScore: userData['user']['credit_score'] ?? 0,
+              fullName: user['full_name'],
+              email: user['email'],
+              userId: user['id'],
+              creditScore: user['credit_score'] ?? 0,
               isLoggedIn: true,
             ),
           ),
@@ -82,18 +97,23 @@ class _LoginPageState extends State<LoginPage>
         );
       } else {
         final errorData = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorData['error'] ?? "Login failed"),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showSnackBar(errorData['error'] ?? "Login failed", false);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
-      );
+      setState(() => _isLoading = false);
+      _showSnackBar("Network error: $e", false);
     }
+  }
+
+  void _showSnackBar(String message, bool isSuccess) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.poppins()),
+        backgroundColor: isSuccess ? const Color(0xFF06D6A0) : Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   @override
@@ -159,25 +179,21 @@ class _LoginPageState extends State<LoginPage>
                               : Icons.visibility_outlined,
                           color: Colors.white.withOpacity(0.7),
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ForgotPasswordPage(),
-                            ),
-                          );
-                        },
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordPage(),
+                          ),
+                        ),
                         child: Text(
                           "Forgot password?",
                           style: GoogleFonts.poppins(
@@ -208,18 +224,25 @@ class _LoginPageState extends State<LoginPage>
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: loginUser,
+                          onTap: _isLoading ? null : loginUser,
                           borderRadius: BorderRadius.circular(28),
                           child: Center(
-                            child: Text(
-                              "Login",
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                                letterSpacing: 1,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                    strokeWidth: 3,
+                                  )
+                                : Text(
+                                    "Login",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
                           ),
                         ),
                       ),
